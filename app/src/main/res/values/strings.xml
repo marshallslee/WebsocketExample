@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Websocket Example</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="what_is_your_name">What\'s your name?</string>
+
+    <string name="connection_ended">Connection ended</string>
+    <string name="err_connection">Failed to connect to the server.</string>
+</resources>
