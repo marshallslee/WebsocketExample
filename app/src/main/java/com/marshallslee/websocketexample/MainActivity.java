@@ -13,13 +13,12 @@ import com.marshallslee.websocketexample.keys.Keys;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.URISyntaxException;
-
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 public class MainActivity extends AppCompatActivity {
+    private final String TAG = getClass().getSimpleName();
     private EditText etFirstName, etLastName;
     private Socket socket;
     private boolean isConnected = true;
@@ -30,14 +29,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         try {
-            socket = IO.socket("ws://websockettest.marshallslee.com");
-        } catch(Exception e) {
+            socket = IO.socket(Keys.BASE_URL);
+            socket.connect();
+        } catch (Exception e) {
             Log.e(this.getClass().getSimpleName(), "Exception: " + e.getMessage());
             e.printStackTrace();
         }
 
-        socket.on("request", onNewMessage);
-        socket.connect();
+        socket.on(Keys.RESPONSE, onMessageReceived);
 
         Button btnQuery = findViewById(R.id.btnQuery);
         etFirstName = findViewById(R.id.etFirstName);
@@ -58,31 +57,29 @@ public class MainActivity extends AppCompatActivity {
         try {
             data.put(Keys.FIRST_NAME, firstName);
             data.put(Keys.LAST_NAME, lastName);
-        } catch(JSONException e) {
+            socket.emit(Keys.NAME, data);
+        } catch (JSONException e) {
             Log.e(this.getClass().getSimpleName(), "Exception: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    JSONObject data = (JSONObject) args[0];
-                    String firstName;
-                    String lastName;
-
-                    try {
-                        firstName = data.getString(Keys.FIRST_NAME);
-                        lastName = data.getString(Keys.LAST_NAME);
-                        Toast.makeText(MainActivity.this, "First Name: " + firstName + "\nLast Name: " + lastName, Toast.LENGTH_SHORT).show();
-                    } catch(JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+    private Emitter.Listener onMessageReceived = args -> runOnUiThread(() -> {
+        JSONObject receivedData = (JSONObject) args[0];
+        String hello;
+        try {
+            hello = receivedData.getString(Keys.HELLO);
+        } catch(JSONException e) {
+            Log.e(TAG, "JSONException caught: " + e.getMessage());
+            return;
         }
-    };
+        Toast.makeText(MainActivity.this, hello, Toast.LENGTH_SHORT).show();
+    });
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.e(TAG, "turning the socket off.");
+        socket.off();
+    }
 }
