@@ -22,24 +22,16 @@ import io.socket.emitter.Emitter;
 public class MainActivity extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
     private EditText etFirstName, etLastName;
-    private boolean isConnected = true;
 
     private Socket socket;
-    {
-        try {
-            socket = IO.socket(Keys.BASE_URL);
-        } catch(URISyntaxException e) {
-            Log.e(TAG, "URISyntaxException caught: " + e.getMessage());
-        }
-    }
+    private boolean isConnected = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        socket.on(Keys.RESPONSE, onMessageReceived);
-        socket.connect();
+        connect();
 
         Button btnQuery = findViewById(R.id.btnQuery);
         etFirstName = findViewById(R.id.etFirstName);
@@ -48,22 +40,40 @@ public class MainActivity extends AppCompatActivity {
         btnQuery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                callMessage();
+                    callMessage();
             }
         });
+    }
+
+    private void connect() {
+        try {
+            socket = IO.socket(Keys.BASE_URL);
+            socket.on(Socket.EVENT_CONNECT, onConnect);
+            socket.on(Socket.EVENT_CONNECT_ERROR, onConnectError);
+            socket.on(Socket.EVENT_DISCONNECT, onDisconnect);
+            socket.on(Keys.RESPONSE, onMessageReceived);
+            socket.connect();
+        } catch(URISyntaxException e) {
+            Log.e(TAG, "URISyntaxException caught: " + e.getMessage());
+        }
     }
 
     private void callMessage() {
         JSONObject data = new JSONObject();
         String firstName = etFirstName.getText().toString();
         String lastName = etLastName.getText().toString();
-        try {
-            data.put(Keys.FIRST_NAME, firstName);
-            data.put(Keys.LAST_NAME, lastName);
-            socket.emit(Keys.NAME, data);
-        } catch (JSONException e) {
-            Log.e(this.getClass().getSimpleName(), "Exception: " + e.getMessage());
-            e.printStackTrace();
+        if(socket.connected()) {
+            try {
+                data.put(Keys.FIRST_NAME, firstName);
+                data.put(Keys.LAST_NAME, lastName);
+                socket.emit(Keys.NAME, data);
+                Log.e(TAG, "Emitting the data: " + data.toString());
+            } catch (JSONException e) {
+                Log.e(this.getClass().getSimpleName(), "Exception: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            Log.e(TAG, "Socket is not connected.");
         }
     }
 
@@ -79,11 +89,44 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(MainActivity.this, hello, Toast.LENGTH_SHORT).show();
     });
 
+    private Emitter.Listener onConnect = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            Log.e(TAG, "Websocket is successfully connected.");
+        }
+    };
+
+    private Emitter.Listener onConnectError = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "Failed to connect.");
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onDisconnect = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, "Disconnected.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    };
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.e(TAG, "turning the socket off.");
         socket.disconnect();
-        socket.off();
+        socket.off(Socket.EVENT_CONNECT, onConnect);
+        socket.off(Socket.EVENT_CONNECT_ERROR, onConnectError);
+        socket.off(Socket.EVENT_DISCONNECT, onDisconnect);
     }
 }
