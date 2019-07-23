@@ -1,7 +1,7 @@
 package com.marshallslee.websocketexample.keys;
 
 public class Keys {
-    public static final String BASE_URL = "ws://websockettest.marshallslee.com";
+    public static final String BASE_URL = "http://websockettest.marshallslee.com";
     public static final String RESPONSE = "response";
     public static final String NAME = "name";
     public static final String FIRST_NAME = "firstName";

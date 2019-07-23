@@ -13,6 +13,8 @@ import com.marshallslee.websocketexample.keys.Keys;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URISyntaxException;
+
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -20,23 +22,24 @@ import io.socket.emitter.Emitter;
 public class MainActivity extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
     private EditText etFirstName, etLastName;
-    private Socket socket;
     private boolean isConnected = true;
+
+    private Socket socket;
+    {
+        try {
+            socket = IO.socket(Keys.BASE_URL);
+        } catch(URISyntaxException e) {
+            Log.e(TAG, "URISyntaxException caught: " + e.getMessage());
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        try {
-            socket = IO.socket(Keys.BASE_URL);
-            socket.connect();
-        } catch (Exception e) {
-            Log.e(this.getClass().getSimpleName(), "Exception: " + e.getMessage());
-            e.printStackTrace();
-        }
-
         socket.on(Keys.RESPONSE, onMessageReceived);
+        socket.connect();
 
         Button btnQuery = findViewById(R.id.btnQuery);
         etFirstName = findViewById(R.id.etFirstName);
@@ -80,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.e(TAG, "turning the socket off.");
+        socket.disconnect();
         socket.off();
     }
 }
