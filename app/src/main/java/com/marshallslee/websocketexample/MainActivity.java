@@ -18,6 +18,7 @@ import java.net.URISyntaxException;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
+import io.socket.engineio.client.EngineIOException;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
@@ -81,15 +82,14 @@ public class MainActivity extends AppCompatActivity {
         JSONObject receivedData = (JSONObject) args[0];
         String hello;
         try {
-            hello = receivedData.getString(Keys.HELLO);
+            hello = receivedData.getString(Keys.NAME);
+            Toast.makeText(MainActivity.this, hello, Toast.LENGTH_SHORT).show();
         } catch(JSONException e) {
             Log.e(TAG, "JSONException caught: " + e.getMessage());
-            return;
         }
-        Toast.makeText(MainActivity.this, hello, Toast.LENGTH_SHORT).show();
     });
 
-    private Emitter.Listener onConnect = new Emitter.Listener() {
+    private final Emitter.Listener onConnect = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
             Log.e(TAG, "Websocket is successfully connected.");
@@ -102,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Log.e(TAG, "Failed to connect.");
+                    EngineIOException e = (EngineIOException) args[0];
+                    Log.e(TAG, "Failed to connect  " + e.getMessage());
                 }
             });
         }
